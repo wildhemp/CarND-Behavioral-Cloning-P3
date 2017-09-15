@@ -139,11 +139,11 @@ def augment(image, angle):
     image = cv2.cvtColor(image, cv2.COLOR_YUV2RGB)
 
     if angle > .25:
-        tx = np.random.uniform(0., 35.)
+        tx = np.random.uniform(0., 25.)
     elif angle < -.25:
-        tx = np.random.uniform(-35., 0.)
+        tx = np.random.uniform(-25., 0.)
     else:
-        tx = np.random.uniform(-35., 35.)
+        tx = np.random.uniform(-25., 25.)
 
     M = np.float32(([1, 0, tx], [0, 1, 0]))
 
@@ -179,7 +179,7 @@ def generator(data, bach_size=128):
 
 def build_model():
     model = Sequential()
-    model.add(Cropping2D(cropping=((80, 30), (35, 35)), input_shape=(160, 320, 3)))
+    model.add(Cropping2D(cropping=((80, 30), (0, 0)), input_shape=(160, 320, 3)))
     # normalize image
     model.add(Lambda(lambda x: (x / 127.5) - 1.))
 
