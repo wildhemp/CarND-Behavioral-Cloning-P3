@@ -220,7 +220,7 @@ def augment(image, angle):
     return image, angle
 
 
-def generator(data, augment, bach_size=128):
+def generator(data, augment_data, bach_size=128):
     '''
     Generates the inputs for training the model.
 
@@ -243,7 +243,7 @@ def generator(data, augment, bach_size=128):
                 image = cv2.cvtColor(cv2.imread(current['path'].decode("utf-8")), cv2.COLOR_BGR2RGB)
                 angle = float(current['angle'])
 
-                if augment:
+                if augment_data:
                     # Flip the images half the time, to help the model generalize better.
                     if np.random.uniform() < .5:
                         image = np.fliplr(image)
@@ -324,8 +324,8 @@ def main(_):
                              np.concatenate((valid_1, valid_2)),\
                              np.concatenate((original_1, original_2))
 
-    train_generator = generator(train, augment=True)
-    valid_generator = generator(valid, augment=False)
+    train_generator = generator(train, augment_data=True)
+    valid_generator = generator(valid, augment_data=False)
 
     model = build_model()
 

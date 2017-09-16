@@ -19,9 +19,14 @@ The goals / steps of this project are the following:
 [image3]: ./examples/driving_right.png "Driving - right camera"
 [image4]: ./examples/driving_left.png "Driving - left camera"
 [image5]: ./examples/driving_augmented.png "Driving - augmented"
+[image6]: ./examples/chart_original_dataset.png "Bar chart - original dataset"
+[image7]: ./examples/chart_validation_dataset.png "Bar chart - validation dataset"
+[image8]: ./examples/chart_training_dataset.png "Bar chart - training dataset"
+[image9]: ./examples/figure_loss.png "Training and validation loss"
+
 
 ## Rubric Points
-###Here I will consider the [rubric points](https://review.udacity.com/#!/rubrics/432/view) individually and describe how I addressed each point in my implementation.  
+###Here I will consider the [rubric points](https://review.udacity.com/#!/rubrics/432/view) individually and describe how I addressed each point in my implementation.
 
 ---
 ###Files Submitted & Code Quality
@@ -48,9 +53,9 @@ The model.py file contains the code for training and saving the convolution neur
 
 ####1. An appropriate model architecture has been employed
 
-My model consists of a convolution neural network with 5x5 and 3x3 filter sizes and depths between 32 and 64 and fully connected layers with feature sizes between 50-1000 (model.py lines 255-292)
+My model consists of a convolution neural network with 5x5 and 3x3 filter sizes and depths between 32 and 64 and fully connected layers with feature sizes between 50-1000 (model.py lines 264-301)
 
-The model includes RELU layers to introduce nonlinearity, and the data is normalized and cropped in the model using a Keras lambda and cropping layers (model.py lines 262-264).
+The model includes RELU layers to introduce nonlinearity, and the data is normalized and cropped in the model using a Keras lambda and cropping layers (model.py lines 271-273).
 
 The model is a somewhat modified version of the [nvidia model](https://arxiv.org/pdf/1604.07316.pdf), tuned to work better for the current problem.
 
@@ -60,7 +65,7 @@ The model uses L2 regularization to prevent overfitting (e.g. model.py line 266)
 
 Besides this I also augmented and filtered the data. For details, see the last section.
 
-The model was trained and validated on different data sets (both track 1 and 2) to ensure that the model was not overfitting (code line 298-302).
+The model was trained and validated on different data sets (both track 1 and 2) to ensure that the model was not overfitting (code line 321-325).
 
 The model was tested by running it through the simulator and ensuring that the vehicle could stay on the track for both Track 1 and Track 2.
 
@@ -68,11 +73,11 @@ I also modified the speed in drive.py to use the maximum, to see how well the mo
 
 ####3. Model parameter tuning
 
-The model used an adam optimizer, so the learning rate was not tuned manually (model.py line 290).
+The model used an adam optimizer, so the learning rate was not tuned manually (model.py line 299).
 
 The L2 regularization is set to 0.001, which works quite well in preventing overfitting.
 
-The final model was trained for 5 epochs, which seemed to lead to the best result when testing on both tracks 1 and 2.
+The final model was trained for 15 epochs, which seemed to lead to the best result when testing on both tracks 1 and 2.
 
 ####4. Appropriate training data
 
@@ -114,7 +119,7 @@ At the end of the process, the vehicle is able to drive autonomously around the 
 
 ####2. Final Model Architecture
 
-The final model architecture (model.py lines 255-292) consisted of a convolution neural network with the following layers and layer sizes:
+The final model architecture (model.py lines 264-301) consisted of a convolution neural network with the following layers and layer sizes:
 
 
 |Layer                          | Description                                     |
@@ -132,9 +137,7 @@ The final model architecture (model.py lines 255-292) consisted of a convolution
 | Dense                         | 1                                                   |
 
 
-Total params: 5,489,371
-Trainable params: 5,489,371
-
+Total params: 4,721,371
 
 Here is a visualization of the architecture
 
@@ -161,13 +164,65 @@ To augment the dataset I did a couple of things:
 * In generation time, I flipped 1/2 of the images
 * In generation time, I augmented 1/2 of the images, applying random brightness, darkness adjustments, random horizontal transformation and random horizon shifting. This was only necessary for track 2.
 
-#####Angle adjustment and image transformations
+#####Angle adjustment
 
 First I arbitrarily chose a number to adjust the angle for the left and right camera images, but after trying a couple numbers in range of [0.15-0.25], it didn't feel, they worked well. So I went on to do some back of the envelope calculations.
 
 To have an estimate of the distance of the cameras, I checked the width of a Toyota Camry online and divided it by 2. I got a distance of *0.915 meters*. Based on the nvidia paper, I chose to calculate an angle needed for the car to return to the center position in 2 seconds. Assuming the car is doing *30mph/50kph*, it can do about *28 meters*. I then added these numbers to an online triangle calculation, and it gave me a result of *1.875 degrees* for the adjustment. Normalizing this the result is 0.075 for the adjustment. I increased this to **0.09** so that the model is recovering a little quicker which might be helpful for sharp turns.
 
+#####Image transformations
+Track 1 didn't need additional image augmentation beside the left/right camera images. However track 2 did need more data, because in case of sharp turns or driving down/uphill, the model would try to turn too late or too slowly and run off the road.
 
-I finally randomly shuffled the data set and put Y% of the data into a validation set. 
+Both horizontal transformation and horizon shift was needed. The reason at least partially might be, that the collected data was not high quality enough. I had a problem keeping the car in the middle of the road and in case of sharp turn I often ended up getting very close to the side of the road.
 
-I used this training data for training the model. The validation set helped determine if the model was over or under fitting. The ideal number of epochs was Z as evidenced by ... I used an adam optimizer so that manually training the learning rate wasn't necessary.
+For horizontal transformation instead of just randomly applying left/right transformation for the images, I ended up doing that only for images where the angle was < 0.25. For larger angles I did a random shift so that the angle became even larger. My assumption was, that this might help the model stay closer to the center in case of sharp turns. This helped somewhat, but not nearly as much as I was hoping for.
+
+Another thing I tried to combat the car going off road on sharp corners was, to increase the angle correction. However, this had the effect of the car going off road on the next sharp corner if there was more than one in close proximity, due to overcorrecting when coming out of the first corner.
+
+The horizon shifting helped a lot for the cases when the model started turning too late after going uphill/downhill.
+
+#####The final dataset
+
+Before augmenting the data I first split it to training and validation sets. To do this I simply split the data in two to have 75% as traiing and 25% as validation, without shuffling. The reason for this is, that this is basically a driving session, so our best bet in having a good validation set is to have approx 1 lap on each track (25% is assuming 4 laps in the dataset).
+
+The augmentation was only applied to the training dataset.
+
+Here are the dataset sizes:
+Training data: #: (23947,) - augmented
+Validation data: #: (4002,) - no augmentation
+Original data: #: (16007,) - no augmentation
+
+Basically augmenting the data ~doubled the size of it, even though 2/3 of the 0 angles have been removed.
+
+Here's the original data distribution:
+![alt text][image6]
+
+The validation distribution below looks very similar, which is what we want:
+![alt text][image7]
+
+And finally the augmented/filtered trainig dataset:
+![alt text][image8]
+
+This only contains the left and right images. Flipping and applying additional augmentation was done during generation time, so that the model sees a larger number of examples.
+
+The data was shuffles during generation time every time when the generator restarted (which basically means every epoch in this case), and also the batches were shuffled as well, before yielding.
+
+I used this training data for training the model. The validation set helped determine if the model was over or under fitting. The ideal number of epochs was 15 as evidenced by the learning history below.
+
+![alt text][image9]
+
+Though the model doesn't learn much after ~5th epoch, my observation was, that in order to behave better in sharp turns on track 2, it needed more epochs.
+
+Validation loss is always below training loss because the training set is heavily augmented, while the validation is not. The validation loss is a better indicator of the model accuracy, but based on my experience, the absolute value of the loss doesn't mean much below a certain threshold. The only way to really test whether or not the car goes off road is to test in the simulator.
+
+I used an adam optimizer so that manually training the learning rate wasn't necessary. Nevertheless I tried setting the learning late to 0.0001, but beside making the learning slower, that didn't seem to have any effect.
+
+#####Testing in the simulator
+To test the model in the simulator I decided to use the maximum speed after the model was able to pass it at the default speed of 9. In case of track 1 it didn't make much difference, but for track 2 this revealed, that the model is having problems in turns after going uphill/downhill, so in overall this resulted in a better model.
+
+On track 2 the model sometimes gets very close to going off-road, but still manages to steer back at the last minute. At least partially the reason for this might be the dataset used. I'm convinved the model does a better job at driving on track 2 than I did :).
+
+Finally, one problem I was trying to figure out for a long time was, why my model was drving off the road after the bridge. I ruled out the possibility of not having a line on the right side of the road, because there's another place on the track with the exact sideline, and it didn't have a problem there.
+Beside the model sometimes was also going to the left side of the road and driving on the sideline.
+
+After a couple days of trying to figure this out I realized, that OpenCV loads the images in BGR, which are fed to the model as is, while the simulator provides images in RGB. After converting the images to RGB in training time the model drove the track perfectly...
