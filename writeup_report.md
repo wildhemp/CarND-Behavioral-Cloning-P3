@@ -14,8 +14,11 @@ The goals / steps of this project are the following:
 
 [//]: # (Image References)
 
-[image1]: ./examples/placeholder.png "Model Visualization"
-[image2]: ./examples/placeholder.png "Grayscaling"
+[image1]: ./examples/model.png "Model Visualization"
+[image2]: ./examples/driving_center.png "Driving - center camera"
+[image3]: ./examples/driving_right.png "Driving - right camera"
+[image4]: ./examples/driving_left.png "Driving - left camera"
+[image5]: ./examples/driving_augmented.png "Driving - augmented"
 
 ## Rubric Points
 ###Here I will consider the [rubric points](https://review.udacity.com/#!/rubrics/432/view) individually and describe how I addressed each point in my implementation.  
@@ -49,11 +52,13 @@ My model consists of a convolution neural network with 5x5 and 3x3 filter sizes 
 
 The model includes RELU layers to introduce nonlinearity, and the data is normalized and cropped in the model using a Keras lambda and cropping layers (model.py lines 262-264).
 
-The model is a somewhat modified version of the nvidia model, tuned to work better for the current problem.
+The model is a somewhat modified version of the [nvidia model](https://arxiv.org/pdf/1604.07316.pdf), tuned to work better for the current problem.
 
 ####2. Attempts to reduce overfitting in the model
 
 The model uses L2 regularization to prevent overfitting (e.g. model.py line 266). I also experimented with using Dropout layers, which worked, but using L2 made the loss decrease smoother (not jumping up and down), and the car run smoother on Track 1.
+
+Besides this I also augmented and filtered the data. For details, see the last section.
 
 The model was trained and validated on different data sets (both track 1 and 2) to ensure that the model was not overfitting (code line 298-302).
 
@@ -131,32 +136,36 @@ Total params: 5,489,371
 Trainable params: 5,489,371
 
 
-Here is a visualization of the architecture (note: visualizing the architecture is optional according to the project rubric)
+Here is a visualization of the architecture
 
 ![alt text][image1]
 
 ####3. Creation of the Training Set & Training Process
 
-To capture good driving behavior, I first recorded two laps on track one using center lane driving. Here is an example image of center lane driving:
+To capture good driving behavior, I used the udacity provided dataset. I also captured aitional data by driving 4 laps on track 1, but ended up not using it, because the udacity data was better.
+
+Here's an image showing center driving
 
 ![alt text][image2]
 
-I then recorded the vehicle recovering from the left side and right sides of the road back to center so that the vehicle would learn to .... These images show what a recovery looks like starting from ... :
+I didn't record any recovery laps. Instead I was focusing on how to augment the data, so that the model can learn recovery from it. Here are some images used.
 
 ![alt text][image3]
 ![alt text][image4]
 ![alt text][image5]
 
-Then I repeated this process on track two in order to get more data points.
+To augment the dataset I did a couple of things:
+* Filtered out 2/3 of the data which had 0 angle
+* For the remaining 0 angles 1/3 of the time I added either the left or the right image, with adjusted angles.
+* For all other data I added both left and right camera images
+* In generation time, I flipped 1/2 of the images
+* In generation time, I augmented 1/2 of the images, applying random brightness, darkness adjustments, random horizontal transformation and random horizon shifting. This was only necessary for track 2.
 
-To augment the data sat, I also flipped images and angles thinking that this would ... For example, here is an image that has then been flipped:
+#####Angle adjustment and image transformations
 
-![alt text][image6]
-![alt text][image7]
+First I arbitrarily chose a number to adjust the angle for the left and right camera images, but after trying a couple numbers in range of [0.15-0.25], it didn't feel, they worked well. So I went on to do some back of the envelope calculations.
 
-Etc ....
-
-After the collection process, I had X number of data points. I then preprocessed this data by ...
+To have an estimate of the distance of the cameras, I checked the width of a Toyota Camry online and divided it by 2. I got a distance of *0.915 meters*. Based on the nvidia paper, I chose to calculate an angle needed for the car to return to the center position in 2 seconds. Assuming the car is doing *30mph/50kph*, it can do about *28 meters*. I then added these numbers to an online triangle calculation, and it gave me a result of *1.875 degrees* for the adjustment. Normalizing this the result is 0.075 for the adjustment. I increased this to **0.09** so that the model is recovering a little quicker which might be helpful for sharp turns.
 
 
 I finally randomly shuffled the data set and put Y% of the data into a validation set. 

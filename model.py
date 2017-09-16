@@ -141,7 +141,7 @@ def visualize_data(train, valid, original):
     dataset_info(valid, 'Validation data')
     dataset_info(original, 'Original data')
 
-    index = 6291 #np.random.randint(0, len(original))
+    index = np.random.randint(0, len(original))
 
     center_path = original[index]['path'].decode("utf-8")
     path = center_path.split('/')
@@ -220,7 +220,7 @@ def augment(image, angle):
     return image, angle
 
 
-def generator(data, bach_size=128):
+def generator(data, augment, bach_size=128):
     '''
     Generates the inputs for training the model.
 
@@ -242,14 +242,16 @@ def generator(data, bach_size=128):
                 # well on RGB data when trained on BGR, but run of the road at some points...
                 image = cv2.cvtColor(cv2.imread(current['path'].decode("utf-8")), cv2.COLOR_BGR2RGB)
                 angle = float(current['angle'])
-                # Flip the images half the time, to help the model generalize better.
-                if np.random.uniform() < .5:
-                    image = np.fliplr(image)
-                    angle = -angle
 
-                # Apply random augmentation half the time, again, helping the model generalize.
-                if np.random.uniform() < .5:
-                    image, angle = augment(image, angle)
+                if augment:
+                    # Flip the images half the time, to help the model generalize better.
+                    if np.random.uniform() < .5:
+                        image = np.fliplr(image)
+                        angle = -angle
+
+                    # Apply random augmentation half the time, again, helping the model generalize.
+                    if np.random.uniform() < .5:
+                        image, angle = augment(image, angle)
 
                 images.append(image), angles.append(angle)
 
@@ -300,6 +302,11 @@ def build_model():
 
 
 def visualize_loss(history):
+    '''
+    Plots the training and validation loss.
+
+    :param history: the training history returned by fit/fit_generator
+    '''
     plt.plot(history.history['loss'])
     plt.plot(history.history['val_loss'])
     plt.title('Model MSE loss')
@@ -317,8 +324,8 @@ def main(_):
                              np.concatenate((valid_1, valid_2)),\
                              np.concatenate((original_1, original_2))
 
-    train_generator = generator(train)
-    valid_generator = generator(valid)
+    train_generator = generator(train, augment=True)
+    valid_generator = generator(valid, augment=False)
 
     model = build_model()
 
