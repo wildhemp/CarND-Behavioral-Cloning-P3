@@ -81,7 +81,7 @@ The final model was trained for 15 epochs, which seemed to lead to the best resu
 
 ####4. Appropriate training data
 
-Training data was chosen to keep the vehicle driving on the road. I used the udacity provided data, and recorded data from track 2 as well. For recovery the model was using the left and right images as well as horizontal translations (only necessary for the challange track).
+Training data was chosen to keep the vehicle driving on the road. I used the udacity provided data, and recorded data from track 2 as well. For recovery the model was using the left and right images as well as horizontal translations (only necessary for the challenge track).
 
 For details about how I created the training data, see the next section.
 
@@ -171,6 +171,7 @@ First I arbitrarily chose a number to adjust the angle for the left and right ca
 To have an estimate of the distance of the cameras, I checked the width of a Toyota Camry online and divided it by 2. I got a distance of *0.915 meters*. Based on the nvidia paper, I chose to calculate an angle needed for the car to return to the center position in 2 seconds. Assuming the car is doing *30mph/50kph*, it can do about *28 meters*. I then added these numbers to an online triangle calculation, and it gave me a result of *1.875 degrees* for the adjustment. Normalizing this the result is 0.075 for the adjustment. I increased this to **0.09** so that the model is recovering a little quicker which might be helpful for sharp turns.
 
 #####Image transformations
+
 Track 1 didn't need additional image augmentation beside the left/right camera images. However track 2 did need more data, because in case of sharp turns or driving down/uphill, the model would try to turn too late or too slowly and run off the road.
 
 Both horizontal transformation and horizon shift was needed. The reason at least partially might be, that the collected data was not high quality enough. I had a problem keeping the car in the middle of the road and in case of sharp turn I often ended up getting very close to the side of the road.
@@ -188,19 +189,23 @@ Before augmenting the data I first split it to training and validation sets. To 
 The augmentation was only applied to the training dataset.
 
 Here are the dataset sizes:
-Training data: #: (23947,) - augmented
-Validation data: #: (4002,) - no augmentation
-Original data: #: (16007,) - no augmentation
+
+* Training data: #: (23947,) - augmented
+* Validation data: #: (4002,) - no augmentation
+* Original data: #: (16007,) - no augmentation
 
 Basically augmenting the data ~doubled the size of it, even though 2/3 of the 0 angles have been removed.
 
 Here's the original data distribution:
+
 ![alt text][image6]
 
 The validation distribution below looks very similar, which is what we want:
+
 ![alt text][image7]
 
 And finally the augmented/filtered trainig dataset:
+
 ![alt text][image8]
 
 This only contains the left and right images. Flipping and applying additional augmentation was done during generation time, so that the model sees a larger number of examples.
